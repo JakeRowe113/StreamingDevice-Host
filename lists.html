@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rowe Network Lists</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --panel-bg: #141414;
+            --panel-active: #2a2a2a;
+            --text-color: #ffffff;
+            --text-muted: #888888;
+            --accent-color: #ffd700;
+            --danger-color: #ff4757;
+            --success-color: #2ed573;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Sidebar (Lists Panel) */
+        .sidebar {
+            width: 300px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .home-container {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid #222;
+        }
+
+        .nav-btn {
+            background-color: var(--bg-color);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 6px rgba(255, 255, 255, 0.05);
+            transition: transform 0.1s ease, background-color 0.1s ease;
+            cursor: pointer;
+            border: none;
+            flex-shrink: 0;
+            color: var(--text-muted);
+        }
+
+        .nav-btn:active { background-color: var(--panel-active); transform: scale(0.95); }
+        .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .nav-btn:hover { color: var(--accent-color); }
+
+        /* Sidebar Lists Container */
+        .sidebar-lists {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 12px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .list-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            padding: 16px 24px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .list-btn:hover { background-color: rgba(255, 255, 255, 0.02); }
+        .list-btn:active { background-color: var(--panel-active); }
+        
+        .list-btn.active {
+            color: var(--accent-color);
+            background-color: rgba(255, 215, 0, 0.08);
+            border-right: 3px solid var(--accent-color);
+        }
+
+        .list-btn svg {
+            width: 18px; height: 18px;
+            stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+            opacity: 0.5;
+        }
+        .list-btn.active svg { opacity: 1; }
+
+        /* Sidebar Bottom (Create & Settings) */
+        .sidebar-bottom {
+            padding: 24px;
+            border-top: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .sidebar-input-group {
+            display: flex;
+            background-color: var(--bg-color);
+            border: 1px solid #333;
+            border-radius: 20px;
+            padding: 4px;
+        }
+
+        .sidebar-input-group input {
+            flex: 1; background: transparent; border: none; color: var(--text-color);
+            padding: 8px 12px; font-size: 0.95rem; outline: none; min-width: 0;
+        }
+        
+        .sidebar-input-group button {
+            background-color: var(--accent-color); color: #000; border: none;
+            border-radius: 16px; padding: 8px 16px; font-weight: bold; cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .sidebar-input-group button:active { transform: scale(0.95); }
+
+        .settings-btn {
+            background: none; border: none; color: var(--text-muted); font-size: 1rem;
+            cursor: pointer; display: flex; align-items: center; gap: 12px;
+            padding: 8px 0; transition: color 0.2s ease;
+        }
+        .settings-btn:hover { color: var(--text-color); }
+        .settings-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;}
+
+        /* Main Content */
+        .content {
+            flex-grow: 1;
+            position: relative;
+            background-color: var(--bg-color);
+        }
+
+        .view {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            padding: 48px; box-sizing: border-box;
+            display: none; flex-direction: column;
+            overflow-y: auto; animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .view.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .view-header {
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;
+        }
+        
+        .view-header-left {
+            display: flex; align-items: center; gap: 16px;
+        }
+
+        h2 { font-weight: 300; margin: 0; letter-spacing: 1px; font-size: 2rem; color: var(--accent-color); }
+
+        /* Delete List Button */
+        .delete-list-btn {
+            background: none; border: none; color: var(--text-muted); cursor: pointer;
+            padding: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease; margin-right: -12px; /* optical alignment */
+        }
+        .delete-list-btn svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .delete-list-btn:hover { color: var(--danger-color); background-color: rgba(255, 71, 87, 0.1); }
+        .delete-list-btn:active { transform: scale(0.95); }
+
+        /* Mobile Back Button */
+        .mobile-back-btn { display: none; }
+
+        /* Input Groups (Main View) */
+        .input-group {
+            display: flex; background-color: var(--panel-bg); border: 1px solid #333;
+            border-radius: 28px; padding: 6px; margin-bottom: 32px;
+            transition: border-color 0.2s ease; max-width: 800px;
+        }
+        .input-group:focus-within { border-color: var(--accent-color); }
+        
+        .input-group input {
+            flex: 1; background: transparent; border: none; color: var(--text-color);
+            padding: 0 20px; font-size: 1.1rem; outline: none; min-width: 0;
+        }
+        
+        .input-group button, .btn {
+            background-color: var(--accent-color); color: #000; border: none;
+            padding: 14px 28px; font-size: 1.05rem; font-weight: 600; border-radius: 24px;
+            cursor: pointer; transition: transform 0.1s ease, filter 0.1s ease;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .input-group button:active, .btn:active { transform: scale(0.96); filter: brightness(0.9); }
+
+        /* Task Items */
+        .task-list { display: flex; flex-direction: column; gap: 12px; max-width: 800px; }
+
+        .task-item {
+            background-color: var(--panel-bg); padding: 16px 24px; border-radius: 20px;
+            border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;
+            transition: transform 0.1s ease, background-color 0.1s ease;
+        }
+        .task-item:active { background-color: var(--panel-active); transform: scale(0.98); }
+        
+        .task-content { display: flex; align-items: center; gap: 20px; cursor: pointer; flex: 1; }
+        
+        .task-checkbox {
+            width: 28px; height: 28px; border: 2px solid #555; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s ease; flex-shrink: 0;
+        }
+        .task-checkbox svg {
+            width: 16px; height: 16px; stroke: #000; fill: none; stroke-width: 3;
+            stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity 0.2s ease;
+        }
+        
+        .task-item.completed .task-checkbox { background-color: var(--accent-color); border-color: var(--accent-color); }
+        .task-item.completed .task-checkbox svg { opacity: 1; }
+        .task-item.completed span { text-decoration: line-through; color: #666; }
+        .task-item span { font-size: 1.1rem; }
+        
+        .delete-btn { 
+            background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px;
+            display: flex; align-items: center; justify-content: center; border-radius: 50%;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+        .delete-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+        .delete-btn:hover { color: var(--danger-color); }
+        .delete-btn:active { background-color: rgba(255, 71, 87, 0.1); }
+
+        /* Settings Form */
+        .settings-container { max-width: 600px; }
+        .form-group { margin-bottom: 24px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.95rem; padding-left: 12px;}
+        .standalone-input {
+            width: 100%; padding: 18px 24px; background-color: var(--panel-bg); border: 1px solid #333;
+            color: var(--text-color); border-radius: 24px; font-size: 1.1rem; outline: none; box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
+        .standalone-input:focus { border-color: var(--accent-color); }
+
+        /* Empty States */
+        .empty-state {
+            padding: 48px; text-align: center; border: 1px dashed #333;
+            border-radius: 24px; color: var(--text-muted); font-size: 1.25rem; max-width: 800px;
+        }
+        .sidebar-empty { padding: 24px; text-align: center; color: #555; font-size: 0.95rem; }
+        #error-msg { color: var(--danger-color); margin-top: 1rem; font-weight: 500; padding-left: 12px;}
+
+        /* ========================================================
+           MOBILE RESPONSIVE STYLES (Drill-down Navigation)
+           ======================================================== */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; border-right: none; }
+            
+            /* By default on mobile, content is hidden (showing sidebar) */
+            .content { display: none; }
+            
+            /* When a detail view is active, hide sidebar and show content */
+            body.mobile-detail-active .sidebar { display: none; }
+            body.mobile-detail-active .content { display: flex; width: 100%; }
+            
+            /* Show back button in header on mobile */
+            .mobile-back-btn { display: flex; }
+            
+            .view { padding: 32px 20px; }
+            h2 { font-size: 1.5rem; }
+            
+            .input-group { border-radius: 20px; padding: 4px; margin-bottom: 24px; }
+            .input-group input { padding: 0 12px; font-size: 1rem; }
+            .input-group button, .btn { padding: 10px 20px; border-radius: 16px; font-size: 0.95rem; }
+            
+            .task-item { padding: 12px 16px; border-radius: 16px; }
+            .task-content { gap: 12px; }
+            .task-checkbox { width: 24px; height: 24px; }
+            .task-item span { font-size: 1rem; }
+            
+            .empty-state { padding: 32px; font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar (Lists Panel) -->
+    <aside class="sidebar">
+        <div class="home-container">
+            <a href="index.html" class="nav-btn" aria-label="Home">
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </a>
+            <img src="https://resources.jakerowe.me/logos/rowe/logo-white.png" alt="Rowe Logo" style="height: 30px; width: auto; object-fit: contain;">
+        </div>
+        
+        <div class="sidebar-lists" id="sidebarLists">
+            <div class="sidebar-empty">Loading...</div>
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-input-group">
+                <input type="text" id="newListName" placeholder="New list name...">
+                <button onclick="createList()">Add</button>
+            </div>
+            <button class="settings-btn" onclick="showSettings()">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                API Settings
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content">
+        
+        <!-- WELCOME VIEW (Desktop Only Default) -->
+        <div id="welcomeView" class="view active">
+            <div class="empty-state" style="margin-top: auto; margin-bottom: auto;">
+                Select a list from the sidebar to view its items.
+            </div>
+        </div>
+
+        <!-- SETTINGS VIEW -->
+        <div id="settingsView" class="view">
+            <div class="view-header">
+                <div class="view-header-left">
+                    <button class="nav-btn mobile-back-btn" onclick="goBackToSidebar()" aria-label="Back">
+                        <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    </button>
+                    <h2>API Settings</h2>
+                </div>
+            </div>
+            
+            <div class="settings-container">
+                <div class="form-group">
+                    <label>API Base URL</label>
+                    <input type="url" id="apiUrl" class="standalone-input" placeholder="https://api.rowenetwork.com">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="apiKey" class="standalone-input" placeholder="Enter your x-api-key">
+                </div>
+                <button class="btn" style="width: 100%; margin-top: 8px; padding: 18px;" onclick="saveSettings()">Save & Connect</button>
+                <div id="error-msg"></div>
+            </div>
+        </div>
+
+        <!-- SINGLE LIST VIEW -->
+        <div id="listView" class="view">
+            <div class="view-header">
+                <div class="view-header-left">
+                    <button class="nav-btn mobile-back-btn" onclick="goBackToSidebar()" aria-label="Back">
+                        <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    </button>
+                    <h2 id="currentListTitle">List Name</h2>
+                </div>
+                
+                <button class="delete-list-btn" onclick="deleteCurrentList()" aria-label="Delete List" title="Delete List">
+                    <svg viewBox="0 0 24 24">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" id="newItemName" placeholder="Add a new item...">
+                <button onclick="addItem()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Add
+                </button>
+            </div>
+            <div id="itemsContainer" class="task-list">
+                <!-- Items injected here -->
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let config = { url: '', key: '' };
+        let currentList = '';
+
+        window.onload = () => {
+            const savedUrl = localStorage.getItem('roweApiUrl');
+            const savedKey = localStorage.getItem('roweApiKey');
+            
+            if (savedUrl && savedKey) {
+                config.url = savedUrl.replace(/\/$/, '');
+                config.key = savedKey;
+                document.getElementById('apiUrl').value = config.url;
+                document.getElementById('apiKey').value = config.key;
+                
+                loadLists();
+            } else {
+                showSettings();
+            }
+        };
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            document.getElementById('error-msg').innerText = '';
+        }
+
+        function showSettings() {
+            document.querySelectorAll('.list-btn').forEach(btn => btn.classList.remove('active'));
+            currentList = '';
+            switchView('settingsView');
+            document.body.classList.add('mobile-detail-active');
+        }
+
+        function goBackToSidebar() {
+            document.body.classList.remove('mobile-detail-active');
+            document.querySelectorAll('.list-btn').forEach(btn => btn.classList.remove('active'));
+            currentList = '';
+            
+            if(window.innerWidth > 768) {
+                switchView('welcomeView');
+            }
+        }
+
+        function saveSettings() {
+            const url = document.getElementById('apiUrl').value.trim();
+            const key = document.getElementById('apiKey').value.trim();
+            
+            if (!url || !key) {
+                document.getElementById('error-msg').innerText = 'Both URL and Key are required.';
+                return;
+            }
+
+            config.url = url.replace(/\/$/, '');
+            config.key = key;
+            localStorage.setItem('roweApiUrl', config.url);
+            localStorage.setItem('roweApiKey', config.key);
+            
+            goBackToSidebar();
+            loadLists();
+        }
+
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const headers = { 'x-api-key': config.key };
+            let url = `${config.url}/${endpoint}`;
+            let options = { method, headers };
+
+            if (method === 'GET' && body) {
+                const params = new URLSearchParams(body).toString();
+                url += `?${params}`;
+            } else if (body) {
+                headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+
+            try {
+                const res = await fetch(url, options);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || `HTTP Error ${res.status}`);
+                return data;
+            } catch (err) {
+                alert(`API Error: ${err.message}`);
+                throw err;
+            }
+        }
+
+        async function loadLists() {
+            const container = document.getElementById('sidebarLists');
+            container.innerHTML = '<div class="sidebar-empty">Loading lists...</div>';
+            
+            try {
+                const data = await apiCall('list/getlists');
+                container.innerHTML = '';
+                
+                if (!data.lists || data.lists.length === 0) {
+                    container.innerHTML = '<div class="sidebar-empty">No lists found.</div>';
+                    return;
+                }
+
+                data.lists.forEach(listName => {
+                    const btn = document.createElement('button');
+                    btn.className = `list-btn ${currentList === listName ? 'active' : ''}`;
+                    btn.innerHTML = `
+                        ${listName}
+                        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    `;
+                    btn.onclick = () => selectList(listName);
+                    container.appendChild(btn);
+                });
+            } catch (err) {
+                container.innerHTML = '<div class="sidebar-empty" style="color:var(--danger-color)">Error loading lists.</div>';
+            }
+        }
+
+        async function selectList(listName) {
+            currentList = listName;
+            document.getElementById('currentListTitle').innerText = listName;
+            
+            // Update active state in sidebar
+            document.querySelectorAll('.list-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.innerText.trim() === listName) btn.classList.add('active');
+            });
+
+            switchView('listView');
+            document.body.classList.add('mobile-detail-active');
+            
+            loadItems();
+        }
+
+        async function createList() {
+            const input = document.getElementById('newListName');
+            const listName = input.value.trim();
+            if (!listName) return;
+
+            try {
+                await apiCall('list/createlist', 'POST', { list: listName });
+                input.value = '';
+                await loadLists();
+                selectList(listName);
+            } catch (err) {}
+        }
+
+        async function deleteCurrentList() {
+            if (!confirm(`Are you sure you want to completely delete the list "${currentList}"?`)) return;
+            
+            try {
+                await apiCall('list/deletelist', 'DELETE', { list: currentList });
+                goBackToSidebar();
+                loadLists();
+            } catch (err) {}
+        }
+
+        async function loadItems() {
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '<div class="empty-state">Loading items...</div>';
+            
+            try {
+                const data = await apiCall('list/getitems', 'GET', { list: currentList });
+                container.innerHTML = '';
+                
+                if (!data.items || data.items.length === 0) {
+                    container.innerHTML = '<div class="empty-state">This list is empty.</div>';
+                    return;
+                }
+
+                data.items.forEach(item => {
+                    const isCompleted = item.status === 'completed';
+                    const div = document.createElement('div');
+                    div.className = `task-item ${isCompleted ? 'completed' : ''}`;
+                    
+                    div.innerHTML = `
+                        <div class="task-content" onclick="toggleItemStatus('${item.name.replace(/'/g, "\\'")}', '${item.status}')">
+                            <div class="task-checkbox">
+                                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
+                            <span>${item.name}</span>
+                        </div>
+                        <button class="delete-btn" onclick="deleteItem('${item.name.replace(/'/g, "\\'")}')">
+                            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (err) {}
+        }
+
+        async function addItem() {
+            const input = document.getElementById('newItemName');
+            const itemName = input.value.trim();
+            if (!itemName) return;
+
+            try {
+                await apiCall('list/add', 'POST', { list: currentList, item: itemName });
+                input.value = '';
+                loadItems();
+            } catch (err) {}
+        }
+
+        async function toggleItemStatus(itemName, currentStatus) {
+            const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+            try {
+                await apiCall('list/update', 'PUT', { list: currentList, item: itemName, status: newStatus });
+                loadItems();
+            } catch (err) {}
+        }
+
+        async function deleteItem(itemName) {
+            if (!confirm(`Delete "${itemName}"?`)) return;
+            try {
+                await apiCall('list/delete', 'DELETE', { list: currentList, item: itemName });
+                loadItems();
+                loadLists(); 
+            } catch (err) {}
+        }
+    </script>
+</body>
+</html>
